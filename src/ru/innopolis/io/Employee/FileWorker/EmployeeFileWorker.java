@@ -1,27 +1,42 @@
-package ru.innopolis.io.Employee;
+package ru.innopolis.io.Employee.FileWorker;
 
+import ru.innopolis.io.Employee.Employee;
 import ru.innopolis.io.Employee.Exceptions.EmployeeNotFound;
+import ru.innopolis.io.Employee.JobType;
 
-import java.io.*;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
 
 /**
- * Класс, для работы с файлом с данными по сотрудникам.
+ * Класс, для работы с данными по сотрудникам.
  */
-public class EmployeeFileWorker implements AutoCloseable {
+public class EmployeeFileWorker implements Externalizable {
 
-    public static final String employeeFileName = "employee.dat";
-    protected List<Employee> employees;
-    protected boolean updateFile = false;
+    protected boolean dataHasChanged; // изменялись ли данные в коллекции
+    private List<Employee> employees; // данные о сотрудникам
+    private int allEmployeeSalary;    // общая сумма зарплат
 
-    public EmployeeFileWorker() throws IOException, ClassNotFoundException {
-        ReadFromFile();
+    public EmployeeFileWorker() {
+        employees = new ArrayList<>();
+        dataHasChanged = false;
+        allEmployeeSalary = 0;
     }
 
     public List<Employee> getEmployees() {
         return employees;
+    }
+
+    public boolean isDataHasChanged() {
+        return dataHasChanged;
+    }
+
+    public int getAllEmployeeSalary() {
+        return allEmployeeSalary;
     }
 
     /**
@@ -52,7 +67,7 @@ public class EmployeeFileWorker implements AutoCloseable {
         for (Employee employee : employees) {
             if (employee.getJob() == oldJob) {
                 result = true;
-                updateFile = true;
+                dataHasChanged = true;
                 employee.setJob(newJob);
             }
         }
@@ -88,7 +103,13 @@ public class EmployeeFileWorker implements AutoCloseable {
         if (employee == null) {
             return false;
         }
-        return employees.add(employee);
+        if (employees.add(employee)) {
+            dataHasChanged = true;
+            calculateAllSalary();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -101,12 +122,13 @@ public class EmployeeFileWorker implements AutoCloseable {
         if (employee == null) {
             return false;
         }
-        return employees.remove(employee);
-    }
-
-    @Override
-    public void close() throws Exception {
-        WriteToFile();
+        if (employees.remove(employee)) {
+            dataHasChanged = true;
+            calculateAllSalary();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -139,40 +161,40 @@ public class EmployeeFileWorker implements AutoCloseable {
         oldEmployeeData.setSalary(newEmployeeData.getSalary());
         oldEmployeeData.setName(newEmployeeData.getName());
         oldEmployeeData.setAge(newEmployeeData.getAge());
+        calculateAllSalary();
+        dataHasChanged = true;
         return true;
     }
 
-    /**
-     * Прочитать данные из файла
-     *
-     * @throws IOException
-     * @throws ClassNotFoundException
-     */
-    private void ReadFromFile() throws IOException, ClassNotFoundException {
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeObject(employees);
+        calculateAllSalary();
+        out.writeObject(allEmployeeSalary);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         employees = new ArrayList<>();
-        try (ObjectInputStream employeeInputStream = new ObjectInputStream(new FileInputStream(employeeFileName))) {
-            employees = (ArrayList<Employee>) employeeInputStream.readObject();
-            System.out.println("Read from file...");
-        } catch (FileNotFoundException ex) {
-            // если файл не найден, будем считать, что он пустой
-            System.out.println("File " + employeeFileName + " not found");
-        }
+        employees = (ArrayList<Employee>) in.readObject();
+        allEmployeeSalary = (int) in.readObject();
     }
 
     /**
-     * Записать данные в файл
-     *
-     * @throws Exception
+     * Посчитать сумму зарплат по всем сотрудникам
+     * @return сумма зарплат по всем
      */
-    private void WriteToFile() throws Exception {
-        try (ObjectOutputStream employeeOutputStream = new ObjectOutputStream(new FileOutputStream(employeeFileName))) {
-            System.out.println("Write to file...");
-            employeeOutputStream.writeObject(employees);
-            System.out.println("OK");
-        } catch (FileNotFoundException ex) {
-            // если файл не найден, будем считать, что он пустой и при закрытии создадим новый
-            System.out.println("File " + employeeFileName + " not found");
+    private int calculateAllSalary() {
+        allEmployeeSalary = 0;
+        for (Employee employee : employees) {
+            allEmployeeSalary += employee.getSalary();
         }
+        return allEmployeeSalary;
     }
 
+    @Override
+    public String toString() {
+        return "employees=" + employees + "\n" +
+                "allEmployeeSalary=" + allEmployeeSalary;
+    }
 }

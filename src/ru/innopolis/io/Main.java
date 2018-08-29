@@ -7,6 +7,5 @@ public class Main {
         EmployeeTest employeeTest = new EmployeeTest();
         employeeTest.addOrUpdate();
         employeeTest.close();
-
     }
 }
