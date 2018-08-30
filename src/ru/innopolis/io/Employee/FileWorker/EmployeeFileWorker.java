@@ -39,6 +39,10 @@ public class EmployeeFileWorker implements Externalizable {
         return allEmployeeSalary;
     }
 
+    public void setAllEmployeeSalary(int allEmployeeSalary) {
+        this.allEmployeeSalary = allEmployeeSalary;
+    }
+
     /**
      * Найти всех сотрудников с конкретной работой
      *

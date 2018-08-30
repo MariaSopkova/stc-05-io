@@ -17,6 +17,7 @@ public class EmployeeFile implements AutoCloseable {
     private EmployeeFileParser fileParser;
 
     public EmployeeFile() throws IOException, ClassNotFoundException {
+        //fileParser = new EmployeeTXTFileParser();
         fileParser = new EmployeeFileParser();
         fileWorker = fileParser.readFromFile();
     }
